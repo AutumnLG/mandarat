@@ -1,21 +1,14 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:logger/logger.dart';
-import 'package:mandarat/mandarat_model.dart';
+import 'package:mandarat/models/screen_model.dart';
+import 'package:mandarat/widgets/banner_widget.dart';
 
-List mandaratModelList = [
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기 asdddd'),
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기'),
-  MandaratModel('플러터 공부하기')
-];
-
-void main() {
-  logger.d('안녕 플러터');
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  MobileAds.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -32,7 +25,41 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: Home());
+    return const MaterialApp(home: SplashScreen());
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<StatefulWidget> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Home(),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          'Splash Screen',
+          style: TextStyle(fontSize: 20),
+        ),
+      ),
+    );
   }
 }
 
@@ -44,64 +71,43 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final List<ScreenModel> _screens = ScreenModel.screens();
+
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('만다라트'),
+        title: Text(_screens.firstWhere((element) => element.isSelected).title),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) => Center(
-            child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _getContainer(constraints, mandaratModelList[0].text),
-                _getContainer(constraints, mandaratModelList[1].text),
-                _getContainer(constraints, mandaratModelList[2].text),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _getContainer(constraints, mandaratModelList[3].text),
-                _getContainer(constraints, mandaratModelList[4].text),
-                _getContainer(constraints, mandaratModelList[5].text),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _getContainer(constraints, mandaratModelList[6].text),
-                _getContainer(constraints, mandaratModelList[7].text),
-                _getContainer(constraints, mandaratModelList[8].text),
-              ],
-            ),
-          ],
-        )),
+      bottomNavigationBar: buildBottomNavigationBar(),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: _screens.firstWhere((element) => element.isSelected).screen,
+          ),
+          const BannerWidget(),
+        ],
       ),
     );
   }
-}
 
-Container _getContainer(BoxConstraints constraints, String text) {
-  var size = constraints.maxWidth > constraints.maxHeight
-      ? constraints.maxHeight / 3 - 10
-      : constraints.maxWidth / 3 - 10;
-  return Container(
-    width: size,
-    height: size,
-    color: Colors.lightBlue,
-    padding: const EdgeInsets.all(10.0),
-    margin: const EdgeInsets.all(5),
-    child: Center(
-      child: Text(text,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14 * (size / 128), color: Colors.white)),
-    ),
-  );
+  BottomNavigationBar buildBottomNavigationBar() => BottomNavigationBar(
+        items: _screens
+            .map(
+              (e) => BottomNavigationBarItem(
+                icon: e.icon,
+                label: e.title,
+              ),
+            )
+            .toList(),
+        currentIndex: _screens.indexWhere((element) => element.isSelected),
+        elevation: 15,
+        onTap: (index) => setState(() {
+          for (ScreenModel screenModel in _screens) {
+            screenModel.isSelected = false;
+          }
+          _screens[index].isSelected = true;
+        }),
+      );
 }
